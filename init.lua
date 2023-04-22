@@ -197,6 +197,10 @@ vim.o.completeopt = 'menuone,noselect'
 -- NOTE: You should make sure your terminal supports this
 vim.o.termguicolors = true
 
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.expandtab = true
+
 -- [[ Basic Keymaps ]]
 
 -- Keymaps for better default experience
@@ -206,6 +210,9 @@ vim.keymap.set({ 'n', 'v' }, '<Space>', '<Nop>', { silent = true })
 -- Remap for dealing with word wrap
 vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
+
+-- buffers
+vim.keymap.set('n', '<leader>bb', '<C-^>', { silent = true })
 
 -- [[ Highlight on yank ]]
 -- See `:help vim.highlight.on_yank()`
@@ -226,9 +233,12 @@ require('telescope').setup {
       "node_modules"
     },
     mappings = {
+      n = {
+        ['<c-d>'] = require('telescope.actions').delete_buffer
+      }, -- n
       i = {
         ['<C-u>'] = false,
-        ['<C-d>'] = false,
+        ['<C-d>'] = require('telescope.actions').delete_buffer,
       },
     },
   },
