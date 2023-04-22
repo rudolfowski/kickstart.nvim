@@ -310,6 +310,10 @@ vim.o.completeopt = 'menuone,noselect'
 -- NOTE: You should make sure your terminal supports this
 vim.o.termguicolors = true
 
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.expandtab = true
+
 -- [[ Basic Keymaps ]]
 
 -- Keymaps for better default experience
@@ -325,6 +329,9 @@ vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous dia
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next diagnostic message' })
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Open floating diagnostic message' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostics list' })
+
+-- buffers
+vim.keymap.set('n', '<leader>bb', '<C-^>', { silent = true })
 
 -- [[ Highlight on yank ]]
 -- See `:help vim.highlight.on_yank()`
@@ -345,9 +352,12 @@ require('telescope').setup {
       "node_modules"
     },
     mappings = {
+      n = {
+        ['<c-d>'] = require('telescope.actions').delete_buffer
+      }, -- n
       i = {
         ['<C-u>'] = false,
-        ['<C-d>'] = false,
+        ['<C-d>'] = require('telescope.actions').delete_buffer,
       },
     },
   },
