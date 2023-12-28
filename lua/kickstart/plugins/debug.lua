@@ -82,6 +82,28 @@ return {
     end)
 
     vim.fn.sign_define('DapBreakpoint', { text = '🛑', texthl = '', linehl = '', numhl = '' })
+    vim.keymap.set('n', '<Leader>dr', function()
+      dap.repl.toggle({
+        height = 10,
+      })
+    end)
+    vim.keymap.set('n', '<Leader>dl', function() dap.run_last() end)
+    vim.keymap.set({ 'n', 'v' }, '<Leader>dh', function()
+      require('dap.ui.widgets').hover()
+    end)
+    vim.keymap.set({ 'n', 'v' }, '<Leader>dp', function()
+      require('dap.ui.widgets').preview()
+    end)
+    vim.keymap.set('n', '<Leader>df', function()
+      local widgets = require('dap.ui.widgets')
+      widgets.centered_float(widgets.frames)
+    end)
+    vim.keymap.set('n', '<Leader>ds', function()
+      local widgets = require('dap.ui.widgets')
+      widgets.centered_float(widgets.scopes)
+    end)
+
+    vim.fn.sign_define('DapBreakpoint', { text = '🛑', texthl = '', linehl = '', numhl = '' })
 
     -- Dap UI setup
     -- For more information, see |:help nvim-dap-ui|
