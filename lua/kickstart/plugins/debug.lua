@@ -5,7 +5,7 @@
 -- Primarily focused on configuring the debugger for Go, but can
 -- be extended to other languages as well. That's why it's called
 -- kickstart.nvim and not kitchen-sink.nvim ;)
-local DEBUGGER_PATH = vim.fn.stdpath "data" .. "/lazy/vscode-js-debug"
+local DEBUGGER_PATH = vim.fn.stdpath 'data' .. '/lazy/vscode-js-debug'
 
 return {
   -- NOTE: Yes, you can install new plugins here!
@@ -26,10 +26,10 @@ return {
     'leoluz/nvim-dap-go',
 
     -- Javascript
-    { "mxsdev/nvim-dap-vscode-js" },
+    { 'mxsdev/nvim-dap-vscode-js' },
     {
-      "microsoft/vscode-js-debug",
-      run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"
+      'microsoft/vscode-js-debug',
+      run = 'npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out',
     },
   },
   keys = {
@@ -42,14 +42,14 @@ return {
       desc = 'Debug: Start/Continue',
     },
     {
-      '<F1>',
+      '<F6>',
       function()
-        require('dap').step_into()
+        require('dap-go').debug_test()
       end,
-      desc = 'Debug: Step Into',
+      desc = 'Debug Test',
     },
     {
-      '<F2>',
+      '<F10>',
       function()
         require('dap').step_over()
       end,
@@ -57,6 +57,13 @@ return {
     },
     {
       '<F3>',
+      function()
+        require('dap').step_into()
+      end,
+      desc = 'Debug: Step Into',
+    },
+    {
+      '<F4>',
       function()
         require('dap').step_out()
       end,
@@ -117,11 +124,13 @@ return {
       dap.set_breakpoint(vim.fn.input 'Breakpoint condition: ')
     end, { desc = 'Debug: Set Breakpoint' })
     vim.keymap.set('n', '<Leader>dr', function()
-      dap.repl.toggle({
+      dap.repl.toggle {
         height = 10,
-      })
+      }
     end)
-    vim.keymap.set('n', '<Leader>dl', function() dap.run_last() end)
+    vim.keymap.set('n', '<Leader>dl', function()
+      dap.run_last()
+    end)
     vim.keymap.set({ 'n', 'v' }, '<Leader>dh', function()
       require('dap.ui.widgets').hover()
     end)
@@ -129,21 +138,23 @@ return {
       require('dap.ui.widgets').preview()
     end)
     vim.keymap.set('n', '<Leader>df', function()
-      local widgets = require('dap.ui.widgets')
+      local widgets = require 'dap.ui.widgets'
       widgets.centered_float(widgets.frames)
     end)
     vim.keymap.set('n', '<Leader>ds', function()
-      local widgets = require('dap.ui.widgets')
+      local widgets = require 'dap.ui.widgets'
       widgets.centered_float(widgets.scopes)
     end)
 
     vim.fn.sign_define('DapBreakpoint', { text = '🛑', texthl = '', linehl = '', numhl = '' })
     vim.keymap.set('n', '<Leader>dr', function()
-      dap.repl.toggle({
+      dap.repl.toggle {
         height = 10,
-      })
+      }
     end)
-    vim.keymap.set('n', '<Leader>dl', function() dap.run_last() end)
+    vim.keymap.set('n', '<Leader>dl', function()
+      dap.run_last()
+    end)
     vim.keymap.set({ 'n', 'v' }, '<Leader>dh', function()
       require('dap.ui.widgets').hover()
     end)
@@ -151,11 +162,11 @@ return {
       require('dap.ui.widgets').preview()
     end)
     vim.keymap.set('n', '<Leader>df', function()
-      local widgets = require('dap.ui.widgets')
+      local widgets = require 'dap.ui.widgets'
       widgets.centered_float(widgets.frames)
     end)
     vim.keymap.set('n', '<Leader>ds', function()
-      local widgets = require('dap.ui.widgets')
+      local widgets = require 'dap.ui.widgets'
       widgets.centered_float(widgets.scopes)
     end)
 
@@ -187,15 +198,15 @@ return {
           elements = {
             -- Provide IDs as strings or tables with "id" and "size" keys
             {
-              id = "scopes",
+              id = 'scopes',
               size = 0.25, -- Can be float or integer > 1
             },
-            { id = "breakpoints", size = 0.25 },
-            { id = "stacks",      size = 0.25 },
-            { id = "watches",     size = 0.25 },
+            { id = 'breakpoints', size = 0.25 },
+            { id = 'stacks', size = 0.25 },
+            { id = 'watches', size = 0.25 },
           },
           size = 40,
-          position = "left", -- Can be "left" or "right"
+          position = 'left', -- Can be "left" or "right"
         },
         --{
         --  elements = {
@@ -226,43 +237,42 @@ return {
     -- Install golang specific config
     require('dap-go').setup()
 
-
-    require("dap-vscode-js").setup({
+    require('dap-vscode-js').setup {
       --node_path = "node",
       debugger_path = DEBUGGER_PATH,
       -- debugger_cmd = { "js-debug-adapter" },
-      adapters = { "pwa-node", "pwa-chrome", "pwa-msedge", "node-terminal", "pwa-extensionHost" }, -- which adapters to register in nvim-dap
-    })
+      adapters = { 'pwa-node', 'pwa-chrome', 'pwa-msedge', 'node-terminal', 'pwa-extensionHost' }, -- which adapters to register in nvim-dap
+    }
 
-    for _, language in ipairs { "typescript", "javascript" } do
-      require("dap").configurations[language] = {
+    for _, language in ipairs { 'typescript', 'javascript' } do
+      require('dap').configurations[language] = {
         {
-          type = "pwa-node",
-          request = "attach",
-          name = "Attach Node",
+          type = 'pwa-node',
+          request = 'attach',
+          name = 'Attach Node',
           --processId = require("dap.utils").pick_process,
-          cwd = "${workspaceFolder}",
+          cwd = '${workspaceFolder}',
           port = 9229,
         },
         {
-          type = "pwa-chrome",
-          name = "Launch Chrome",
-          request = "launch",
+          type = 'pwa-chrome',
+          name = 'Launch Chrome',
+          request = 'launch',
           sourceMaps = true,
-          url = "http://localhost:4200",
-          webRoot = "${workspaceFolder}",
-          runtimeArgs = { "--profile-directory=Default" },
+          url = 'http://localhost:4200',
+          webRoot = '${workspaceFolder}',
+          runtimeArgs = { '--profile-directory=Default' },
           userDataDir = false,
-          restart = true
+          restart = true,
         },
         {
-          type = "pwa-chrome",
-          name = "Attach Chrome",
-          request = "attach",
+          type = 'pwa-chrome',
+          name = 'Attach Chrome',
+          request = 'attach',
           sourceMaps = true,
-          url = "http://localhost:4200",
+          url = 'http://localhost:4200',
           port = 9222,
-          webRoot = "${workspaceFolder}",
+          webRoot = '${workspaceFolder}',
         },
       }
     end
