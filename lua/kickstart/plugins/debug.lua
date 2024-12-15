@@ -42,13 +42,6 @@ return {
       desc = 'Debug: Start/Continue',
     },
     {
-      '<F6>',
-      function()
-        require('dap-go').debug_test()
-      end,
-      desc = 'Debug Test',
-    },
-    {
       '<F10>',
       function()
         require('dap').step_over()
@@ -56,14 +49,14 @@ return {
       desc = 'Debug: Step Over',
     },
     {
-      '<F3>',
+      '<F11>',
       function()
         require('dap').step_into()
       end,
       desc = 'Debug: Step Into',
     },
     {
-      '<F4>',
+      '<F12>',
       function()
         require('dap').step_out()
       end,
@@ -85,7 +78,7 @@ return {
     },
     -- Toggle to see last session result. Without this, you can't see session output in case of unhandled exception.
     {
-      '<F7>',
+      '<F8>',
       function()
         require('dapui').toggle()
       end,
@@ -95,6 +88,7 @@ return {
   config = function()
     local dap = require 'dap'
     local dapui = require 'dapui'
+    local dapgo = require 'dap-go'
 
     require('mason-nvim-dap').setup {
       -- Makes a best effort to setup the various debuggers with
@@ -114,61 +108,51 @@ return {
     }
 
     -- Basic debugging keymaps, feel free to change to your liking!
-    vim.keymap.set('n', '<F5>', dap.continue)
-    vim.keymap.set('n', '<F1>', dap.step_over)
-    vim.keymap.set('n', '<F2>', dap.step_into)
-    vim.keymap.set('n', '<F3>', dap.step_back)
-    vim.keymap.set('n', '<F4>', dap.step_out)
     vim.keymap.set('n', '<leader>db', dap.toggle_breakpoint)
+
     vim.keymap.set('n', '<leader>dB', function()
       dap.set_breakpoint(vim.fn.input 'Breakpoint condition: ')
     end, { desc = 'Debug: Set Breakpoint' })
+
     vim.keymap.set('n', '<Leader>dr', function()
       dap.repl.toggle {
         height = 10,
       }
-    end)
-    vim.keymap.set('n', '<Leader>dl', function()
-      dap.run_last()
-    end)
-    vim.keymap.set({ 'n', 'v' }, '<Leader>dh', function()
-      require('dap.ui.widgets').hover()
-    end)
-    vim.keymap.set({ 'n', 'v' }, '<Leader>dp', function()
-      require('dap.ui.widgets').preview()
-    end)
-    vim.keymap.set('n', '<Leader>df', function()
-      local widgets = require 'dap.ui.widgets'
-      widgets.centered_float(widgets.frames)
-    end)
-    vim.keymap.set('n', '<Leader>ds', function()
-      local widgets = require 'dap.ui.widgets'
-      widgets.centered_float(widgets.scopes)
     end)
 
-    vim.fn.sign_define('DapBreakpoint', { text = '🛑', texthl = '', linehl = '', numhl = '' })
-    vim.keymap.set('n', '<Leader>dr', function()
-      dap.repl.toggle {
-        height = 10,
-      }
-    end)
+    vim.keymap.set('n', '<Leader>dt', function()
+      dapgo.debug_test()
+    end, { desc = 'Debug: Test' })
+
+    vim.keymap.set('n', '<Leader>dc', function()
+      dap.run_to_cursor()
+    end, { desc = 'Debug: Run to cursor' })
+
     vim.keymap.set('n', '<Leader>dl', function()
       dap.run_last()
-    end)
+    end, { desc = 'Debug: Run Last' })
+
     vim.keymap.set({ 'n', 'v' }, '<Leader>dh', function()
       require('dap.ui.widgets').hover()
-    end)
+    end, { desc = 'Debug: Hover' })
+
     vim.keymap.set({ 'n', 'v' }, '<Leader>dp', function()
       require('dap.ui.widgets').preview()
-    end)
+    end, { desc = 'Debug: Preview' })
+
     vim.keymap.set('n', '<Leader>df', function()
       local widgets = require 'dap.ui.widgets'
       widgets.centered_float(widgets.frames)
-    end)
+    end, { desc = 'Debug: Frames' })
+
     vim.keymap.set('n', '<Leader>ds', function()
       local widgets = require 'dap.ui.widgets'
       widgets.centered_float(widgets.scopes)
-    end)
+    end, { desc = 'Debug: Scopes' })
+
+    vim.keymap.set('n', '<Leader>dq', function()
+      dap.terminate()
+    end, { desc = 'Debug: Quit' })
 
     vim.fn.sign_define('DapBreakpoint', { text = '🛑', texthl = '', linehl = '', numhl = '' })
 
@@ -235,7 +219,11 @@ return {
     dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
     -- Install golang specific config
-    require('dap-go').setup()
+    require('dap-go').setup {
+      tests = {
+        verbose = true,
+      },
+    }
 
     require('dap-vscode-js').setup {
       --node_path = "node",

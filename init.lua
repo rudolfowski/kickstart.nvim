@@ -194,6 +194,14 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
+-- Save Ctrl+s
+vim.keymap.set('n', '<C-s>', '<cmd>update<cr>', { noremap = true, desc = 'Save buffer' })
+vim.keymap.set('i', '<C-s>', '<Esc>:update<cr>gi', { noremap = true, desc = 'Save buffer' })
+
+-- Use <Tab> and <S-Tab> to navigate through popup menu
+vim.keymap.set('i', '<Tab>', 'pumvisible() ? "\\<C-n>" : "\\<Tab>"', { expr = true })
+vim.keymap.set('i', '<S-Tab>', 'pumvisible() ? "\\<C-p>" : "\\<Tab>"', { expr = true })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
