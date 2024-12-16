@@ -399,6 +399,9 @@ require('lazy').setup({
             'node_modules',
           },
           mappings = {
+            n = {
+              ['<c-d>'] = 'delete_buffer',
+            },
             i = {
               ['<c-enter>'] = 'to_fuzzy_refine',
             },
@@ -451,6 +454,10 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+
+      -- -- Actions
+      -- local actions = require 'telescope.actions'
+      -- vim.keymap.set('n', '<C-d>', actions.delete_buffer, { desc = '[D]elete buffer' })
     end,
   },
 
