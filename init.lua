@@ -401,9 +401,14 @@ require('lazy').setup({
           mappings = {
             n = {
               ['<c-d>'] = 'delete_buffer',
+              ['<c-j>'] = 'preview_scrolling_down',
+              ['<c-k>'] = 'preview_scrolling_up',
             },
             i = {
               ['<c-enter>'] = 'to_fuzzy_refine',
+              ['<c-d>'] = 'delete_buffer',
+              ['<c-j>'] = 'preview_scrolling_down',
+              ['<c-k>'] = 'preview_scrolling_up',
             },
           },
         },
