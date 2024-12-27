@@ -202,6 +202,11 @@ vim.keymap.set('i', '<C-s>', '<Esc>:update<cr>gi', { noremap = true, desc = 'Sav
 vim.keymap.set('i', '<Tab>', 'pumvisible() ? "\\<C-n>" : "\\<Tab>"', { expr = true })
 vim.keymap.set('i', '<S-Tab>', 'pumvisible() ? "\\<C-p>" : "\\<Tab>"', { expr = true })
 
+-- Buffers keymaps
+vim.keymap.set('n', '<leader>bn', '<cmd>:bn<cr>', { desc = 'Next buffer' })
+vim.keymap.set('n', '<leader>bp', '<cmd>:bp<cr>', { desc = 'Previous buffer' })
+vim.keymap.set('n', '<leader>bd', '<cmd>:bd<cr>', { desc = 'Delete buffer' })
+--
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
