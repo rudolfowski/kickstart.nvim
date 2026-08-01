@@ -944,26 +944,107 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    -- NOTE: gałąź `master` została zamrożona (ostatni commit z kodem: 2025-05)
+    -- i od 2026-03 jawnie NIE wspiera Neovima 0.12. Rozwój trwa na `main`,
+    -- która jest już domyślną gałęzią repozytorium.
+    branch = 'main',
+    -- `main` nie wspiera lazy-loadingu — patrz README projektu.
+    lazy = false,
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
-    -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
-    opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
-      -- Autoinstall languages that are not installed
-      auto_install = true,
-      highlight = {
-        enable = true,
-        -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
-        --  If you are experiencing weird indenting issues, add the language to
-        --  the list of additional_vim_regex_highlighting and disabled languages for indent.
-        additional_vim_regex_highlighting = { 'ruby' },
-      },
-      indent = { enable = true, disable = { 'ruby' } },
-    },
+    config = function()
+      local ts = require 'nvim-treesitter'
+      ts.setup {}
+
+      -- Na `main` nie ma już `ensure_installed` ani `auto_install` —
+      -- parsery instaluje się jawnie. Instalacja jest asynchroniczna i jest
+      -- no-opem, jeśli parser już siedzi na dysku.
+      ts.install {
+        'angular',
+        'bash',
+        'c',
+        'c_sharp',
+        'css',
+        'csv',
+        'diff',
+        'dockerfile',
+        'git_config',
+        'gitcommit',
+        'gitignore',
+        'go',
+        'gomod',
+        'gosum',
+        'gowork',
+        'html',
+        'htmldjango',
+        'javascript',
+        'json',
+        'lua',
+        'luadoc',
+        'make',
+        'markdown',
+        'markdown_inline',
+        'nginx',
+        'pem',
+        'php',
+        'proto',
+        'python',
+        'query',
+        'requirements',
+        'sql',
+        'ssh_config',
+        'toml',
+        'tsx',
+        'typescript',
+        'vim',
+        'vimdoc',
+        'xml',
+        'yaml',
+        -- NOTE: `jsonc` i `tmux` nie istnieją w rejestrze gałęzi `main`
+        -- (były na `master`). Filetype `jsonc` obsługuje parser `json`.
+      }
+
+      -- Na `main` nie ma modułów `highlight`/`indent` — podświetlanie i wcięcia
+      -- włącza się samodzielnie. To odpowiednik dawnego
+      -- `highlight = { enable = true }` + `indent = { enable = true }`.
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('kickstart-treesitter', { clear = true }),
+        callback = function(event)
+          local lang = vim.treesitter.language.get_lang(vim.bo[event.buf].filetype)
+          if not lang then
+            return
+          end
+
+          local function enable()
+            if not pcall(vim.treesitter.start, event.buf, lang) then
+              return
+            end
+            if lang == 'ruby' then
+              -- Odpowiednik dawnego `additional_vim_regex_highlighting = { 'ruby' }`:
+              -- ruby polega na regexowym podświetlaniu przy regułach wcięć,
+              -- dlatego nie ustawiamy tu treesitterowego `indentexpr`.
+              vim.bo[event.buf].syntax = 'on'
+            else
+              vim.bo[event.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+            end
+          end
+
+          local config = require 'nvim-treesitter.config'
+          if vim.tbl_contains(config.get_installed 'parsers', lang) then
+            enable()
+          elseif vim.tbl_contains(config.get_available(), lang) then
+            -- Odpowiednik dawnego `auto_install = true`.
+            ts.install(lang):await(function(err)
+              if not err and vim.api.nvim_buf_is_valid(event.buf) then
+                vim.schedule(enable)
+              end
+            end)
+          end
+        end,
+      })
+    end,
     -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
     --
-    --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
     --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
