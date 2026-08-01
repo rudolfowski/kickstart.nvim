@@ -199,8 +199,11 @@ vim.keymap.set('n', '<C-s>', '<cmd>update<cr>', { noremap = true, desc = 'Save b
 vim.keymap.set('i', '<C-s>', '<Esc>:update<cr>gi', { noremap = true, desc = 'Save buffer' })
 
 -- Use <Tab> and <S-Tab> to navigate through popup menu
+-- NOTE: `pumvisible()` dotyczy tylko wbudowanego popupu (:h ins-completion).
+-- nvim-cmp rysuje własne okno, więc przy nim te mapowania nic nie robią —
+-- do nawigacji po liście cmp służą <C-n>/<C-p> (patrz konfiguracja nvim-cmp niżej).
 vim.keymap.set('i', '<Tab>', 'pumvisible() ? "\\<C-n>" : "\\<Tab>"', { expr = true })
-vim.keymap.set('i', '<S-Tab>', 'pumvisible() ? "\\<C-p>" : "\\<Tab>"', { expr = true })
+vim.keymap.set('i', '<S-Tab>', 'pumvisible() ? "\\<C-p>" : "\\<S-Tab>"', { expr = true })
 
 -- Buffers keymaps
 vim.keymap.set('n', '<leader>bn', '<cmd>:bn<cr>', { desc = 'Next buffer' })
@@ -212,12 +215,12 @@ vim.keymap.set('n', '<leader>bd', '<cmd>:bd<cr>', { desc = 'Delete buffer' })
 
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
---  See `:help vim.highlight.on_yank()`
+--  See `:help vim.hl.on_yank()`
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
-    vim.highlight.on_yank()
+    vim.hl.on_yank()
   end,
 })
 
@@ -331,8 +334,9 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
+        { '<leader>b', group = '[B]uffer' },
         { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
-        { '<leader>d', group = '[D]ocument' },
+        { '<leader>d', group = '[D]ocument / [D]ebug' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
         { '<leader>w', group = '[W]orkspace' },
@@ -490,8 +494,9 @@ require('lazy').setup({
     'neovim/nvim-lspconfig',
     dependencies = {
       -- Automatically install LSPs and related tools to stdpath for Neovim
-      { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
-      'williamboman/mason-lspconfig.nvim',
+      -- NOTE: repo przeniesione z `williamboman/*` na `mason-org/*` (mason 2.x)
+      { 'mason-org/mason.nvim', opts = {} }, -- NOTE: Must be loaded before dependants
+      'mason-org/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
       -- Useful status updates for LSP.
@@ -587,7 +592,7 @@ require('lazy').setup({
           --
           -- When you move your cursor, the highlights will be cleared (the second autocommand).
           local client = vim.lsp.get_client_by_id(event.data.client_id)
-          if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight) then
+          if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight) then
             local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
               buffer = event.buf,
@@ -614,7 +619,7 @@ require('lazy').setup({
           -- code, if the language server you are using supports them
           --
           -- This may be unwanted, since they displace some of your code
-          if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
+          if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
             map('<leader>th', function()
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
             end, '[T]oggle Inlay [H]ints')
@@ -636,8 +641,13 @@ require('lazy').setup({
       --  By default, Neovim doesn't support everything that is in the LSP specification.
       --  When you add nvim-cmp, luasnip, etc. Neovim now has *more* capabilities.
       --  So, we create new capabilities with nvim cmp, and then broadcast that to the servers.
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-      capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
+      --
+      -- NOTE: `vim.lsp.config('*', ...)` to wspólna baza dla WSZYSTKICH serwerów
+      -- (nvim >= 0.11). Zastępuje ręczne wstrzykiwanie `capabilities` w handlerach,
+      -- których mason-lspconfig 2.x już nie ma.
+      vim.lsp.config('*', {
+        capabilities = require('cmp_nvim_lsp').default_capabilities(),
+      })
 
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
@@ -678,6 +688,13 @@ require('lazy').setup({
         },
       }
 
+      -- Zarejestruj override'y z tabeli `servers` w natywnym rejestrze nvima.
+      -- `vim.lsp.config` merguje je z domyślną konfiguracją nvim-lspconfig
+      -- oraz z bazą '*' ustawioną wyżej.
+      for server_name, server_opts in pairs(servers) do
+        vim.lsp.config(server_name, server_opts)
+      end
+
       -- Ensure the servers and tools above are installed
       --  To check the current status of installed tools and/or manually install
       --  other tools, you can run
@@ -694,64 +711,63 @@ require('lazy').setup({
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
+      -- NOTE: mason-lspconfig 2.x nie ma już `handlers`/`setup_handlers`.
+      -- Zainstalowane serwery są włączane automatycznie przez `vim.lsp.enable()`,
+      -- a konfiguracja pochodzi z `vim.lsp.config` powyżej.
       require('mason-lspconfig').setup {
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
+        ensure_installed = {}, -- instalacją zajmuje się mason-tool-installer
+        automatic_enable = {
+          -- stylua to formatter, nie serwer LSP — bez tego mason-lspconfig
+          -- odpalał `stylua --lsp` przy każdym buforze lua.
+          exclude = { 'stylua' },
         },
       }
     end,
   },
 
-  { -- Autoformat
-    'stevearc/conform.nvim',
-    event = { 'BufWritePre' },
-    cmd = { 'ConformInfo' },
-    keys = {
-      {
-        '<leader>f',
-        function()
-          require('conform').format { async = true, lsp_format = 'fallback' }
-        end,
-        mode = '',
-        desc = '[F]ormat buffer',
-      },
-    },
-    opts = {
-      notify_on_error = false,
-      format_on_save = function(bufnr)
-        -- Disable "format_on_save lsp_fallback" for languages that don't
-        -- have a well standardized coding style. You can add additional
-        -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
-        local lsp_format_opt
-        if disable_filetypes[vim.bo[bufnr].filetype] then
-          lsp_format_opt = 'never'
-        else
-          lsp_format_opt = 'fallback'
-        end
-        return {
-          timeout_ms = 500,
-          lsp_format = lsp_format_opt,
-        }
-      end,
-      formatters_by_ft = {
-        lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
-        -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
-      },
-    },
-  },
-
+  -- { -- Autoformat
+  --   'stevearc/conform.nvim',
+  --   event = { 'BufWritePre' },
+  --   cmd = { 'ConformInfo' },
+  --   keys = {
+  --     {
+  --       '<leader>f',
+  --       function()
+  --         require('conform').format { async = true, lsp_format = 'fallback' }
+  --       end,
+  --       mode = '',
+  --       desc = '[F]ormat buffer',
+  --     },
+  --   },
+  --   opts = {
+  --     notify_on_error = false,
+  --     format_on_save = function(bufnr)
+  --       -- Disable "format_on_save lsp_fallback" for languages that don't
+  --       -- have a well standardized coding style. You can add additional
+  --       -- languages here or re-enable it for the disabled ones.
+  --       local disable_filetypes = { c = true, cpp = true, js = true, ts = true, html = true, css = true, json = true }
+  --       local lsp_format_opt
+  --       if disable_filetypes[vim.bo[bufnr].filetype] then
+  --         lsp_format_opt = 'never'
+  --       else
+  --         lsp_format_opt = 'fallback'
+  --       end
+  --       return {
+  --         timeout_ms = 500,
+  --         lsp_format = lsp_format_opt,
+  --       }
+  --     end,
+  --     formatters_by_ft = {
+  --       lua = { 'stylua' },
+  --       -- Conform can also run multiple formatters sequentially
+  --       -- python = { "isort", "black" },
+  --       --
+  --       -- You can use 'stop_after_first' to run the first available formatter from the list
+  --       -- javascript = { "prettierd", "prettier", stop_after_first = true },
+  --     },
+  --   },
+  -- },
+  --
   { -- Autocompletion
     'hrsh7th/nvim-cmp',
     event = 'InsertEnter',

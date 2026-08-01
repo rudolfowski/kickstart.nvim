@@ -19,17 +19,20 @@ return {
     'nvim-neotest/nvim-nio',
 
     -- Installs the debug adapters for you
-    'williamboman/mason.nvim',
+    'mason-org/mason.nvim',
     'jay-babu/mason-nvim-dap.nvim',
 
     -- Add your own debuggers here
     'leoluz/nvim-dap-go',
+    'mfussenegger/nvim-dap-python',
 
     -- Javascript
     { 'mxsdev/nvim-dap-vscode-js' },
     {
       'microsoft/vscode-js-debug',
-      run = 'npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out',
+      -- NOTE: `run` to klucz packera — lazy.nvim go ignoruje, przez co debugger
+      -- JS nigdy się nie budował (brak katalogu `out/`). Poprawny klucz to `build`.
+      build = 'npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out',
     },
   },
   keys = {
@@ -82,6 +85,7 @@ return {
     local dap = require 'dap'
     local dapui = require 'dapui'
     local dapgo = require 'dap-go'
+    local dappy = require 'dap-python'
 
     require('mason-nvim-dap').setup {
       -- Makes a best effort to setup the various debuggers with
@@ -211,14 +215,18 @@ return {
     dap.listeners.before.event_terminated['dapui_config'] = dapui.close
     dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
-    dap.adapters.delve = {
-      type = 'server',
-      port = '${port}',
-      executable = {
-        command = '/usr/bin/kitty',
-        args = { 'dlv', 'dap', '-l', '127.0.0.1:${port}' },
-      },
-    }
+    -- NOTE: nvim-dap-go rejestruje własny adapter `delve`. Ten override jest
+    -- zbędny, a hardcodowana ścieżka do kitty nie istnieje na macOS.
+    -- dap.adapters.delve = {
+    --   type = 'server',
+    --   port = '${port}',
+    --   executable = {
+    --     command = 'kitty',
+    --     args = { 'dlv', 'dap', '-l', '127.0.0.1:${port}' },
+    --   },
+    -- }
+
+    dappy.setup 'python3'
 
     -- Install golang specific config
     require('dap-go').setup {

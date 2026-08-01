@@ -18,7 +18,8 @@ return {
       group = format_sync_grp,
     })
   end,
-  event = { 'CmdlineEnter' },
+  -- NOTE: był tu też `event = { 'CmdlineEnter' }`, który ładował wtyczkę przy
+  -- pierwszym naciśnięciu `:` w dowolnym pliku, kasując sens lazy-loadingu po `ft`.
   ft = { 'go', 'gomod' },
   build = ':lua require("go.install").update_all_sync()', -- if you need to install/update all binaries
 }

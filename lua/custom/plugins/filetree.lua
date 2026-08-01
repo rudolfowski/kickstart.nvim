@@ -1,6 +1,3 @@
--- Unless you are still migrating, remove the deprecated commands from v1.x
-vim.cmd [[ let g:neo_tree_remove_legacy_commands = 1 ]]
-
 return {
   'nvim-neo-tree/neo-tree.nvim',
   version = '*',
@@ -9,9 +6,13 @@ return {
     'nvim-tree/nvim-web-devicons', -- not strictly required, but recommended
     'MunifTanjim/nui.nvim',
   },
-  config = function()
-    require('neo-tree').setup {}
-    vim.keymap.set('n', '<C-m>', '<CMD>Neotree reveal<CR>', { desc = 'show neo-tree' })
-    vim.keymap.set('n', '<C-n>', '<CMD>Neotree toggle<CR>', { desc = 'toggle neo-tree' })
-  end,
+  -- Lazy-load: bez tego neo-tree (+ nui) ładowały się przy każdym starcie.
+  cmd = 'Neotree',
+  keys = {
+    -- NOTE: poprzednio było tu <C-m>, które w terminalu jest tym samym kodem
+    -- co <CR> — Enter w trybie normalnym otwierał drzewko zamiast schodzić w dół.
+    { '<leader>e', '<cmd>Neotree reveal<cr>', desc = 'Neo-tree: reveal current file' },
+    { '<C-n>', '<cmd>Neotree toggle<cr>', desc = 'Neo-tree: toggle' },
+  },
+  opts = {},
 }
