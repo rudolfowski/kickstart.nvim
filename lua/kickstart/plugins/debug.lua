@@ -5,7 +5,6 @@
 -- Primarily focused on configuring the debugger for Go, but can
 -- be extended to other languages as well. That's why it's called
 -- kickstart.nvim and not kitchen-sink.nvim ;)
-local DEBUGGER_PATH = vim.fn.stdpath 'data' .. '/lazy/vscode-js-debug'
 
 return {
   -- NOTE: Yes, you can install new plugins here!
@@ -25,26 +24,6 @@ return {
     -- Add your own debuggers here
     'leoluz/nvim-dap-go',
     'mfussenegger/nvim-dap-python',
-
-    -- Javascript
-    { 'mxsdev/nvim-dap-vscode-js' },
-    {
-      'microsoft/vscode-js-debug',
-      -- NOTE: `run` to klucz packera — lazy.nvim go ignoruje, przez co debugger
-      -- JS nigdy się nie budował (brak katalogu `out/`). Poprawny klucz to `build`.
-      --
-      -- Build wymaga Node >= 20: na starszym krok `l10n:bundle-download` wywala się
-      -- na `SyntaxError: Invalid regular expression flags` (flaga `v` z ES2024).
-      -- Jeśli domyślny node jest za stary, sięgamy po najnowszy z nvm.
-      -- `rm -rf out` przed `mv`, żeby ponowny build nie zagnieździł dist/ w out/.
-      build = table.concat({
-        'if [ "$(node -p \'parseInt(process.versions.node)\' 2>/dev/null || echo 0)" -lt 20 ]; then',
-        '  newest=$(ls -d "$HOME"/.nvm/versions/node/v* 2>/dev/null | sort -V | tail -1);',
-        '  [ -n "$newest" ] && export PATH="$newest/bin:$PATH";',
-        'fi;',
-        'npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && rm -rf out && mv dist out',
-      }, ' '),
-    },
   },
   keys = {
     -- Basic debugging keymaps, feel free to change to your liking!
@@ -246,44 +225,11 @@ return {
       },
     }
 
-    require('dap-vscode-js').setup {
-      --node_path = "node",
-      debugger_path = DEBUGGER_PATH,
-      -- debugger_cmd = { "js-debug-adapter" },
-      adapters = { 'pwa-node', 'pwa-chrome', 'pwa-msedge', 'node-terminal', 'pwa-extensionHost' }, -- which adapters to register in nvim-dap
-    }
-
-    for _, language in ipairs { 'typescript', 'javascript' } do
-      require('dap').configurations[language] = {
-        {
-          type = 'pwa-node',
-          request = 'attach',
-          name = 'Attach Node',
-          --processId = require("dap.utils").pick_process,
-          cwd = '${workspaceFolder}',
-          port = 9229,
-        },
-        {
-          type = 'pwa-chrome',
-          name = 'Launch Chrome',
-          request = 'launch',
-          sourceMaps = true,
-          url = 'http://localhost:4200',
-          webRoot = '${workspaceFolder}',
-          runtimeArgs = { '--profile-directory=Default' },
-          userDataDir = false,
-          restart = true,
-        },
-        {
-          type = 'pwa-chrome',
-          name = 'Attach Chrome',
-          request = 'attach',
-          sourceMaps = true,
-          url = 'http://localhost:4200',
-          port = 9222,
-          webRoot = '${workspaceFolder}',
-        },
-      }
-    end
+    -- NOTE: Debugowanie TS/JS (vscode-js-debug + nvim-dap-vscode-js, konfiguracje
+    -- pwa-node/pwa-chrome pod Angulara na porcie 4200) zostało usunięte.
+    -- Powód: most `mxsdev/nvim-dap-vscode-js` jest porzucony od 2023-03, a build
+    -- `microsoft/vscode-js-debug` wymagał npm przy każdym update i brudził
+    -- package-lock.json, przez co lazy odmawiało aktualizacji wtyczki.
+    -- Historia konfiguracji jest w gicie, gdyby trzeba było ją odtworzyć.
   end,
 }
