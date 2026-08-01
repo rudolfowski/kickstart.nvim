@@ -32,7 +32,18 @@ return {
       'microsoft/vscode-js-debug',
       -- NOTE: `run` to klucz packera — lazy.nvim go ignoruje, przez co debugger
       -- JS nigdy się nie budował (brak katalogu `out/`). Poprawny klucz to `build`.
-      build = 'npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out',
+      --
+      -- Build wymaga Node >= 20: na starszym krok `l10n:bundle-download` wywala się
+      -- na `SyntaxError: Invalid regular expression flags` (flaga `v` z ES2024).
+      -- Jeśli domyślny node jest za stary, sięgamy po najnowszy z nvm.
+      -- `rm -rf out` przed `mv`, żeby ponowny build nie zagnieździł dist/ w out/.
+      build = table.concat({
+        'if [ "$(node -p \'parseInt(process.versions.node)\' 2>/dev/null || echo 0)" -lt 20 ]; then',
+        '  newest=$(ls -d "$HOME"/.nvm/versions/node/v* 2>/dev/null | sort -V | tail -1);',
+        '  [ -n "$newest" ] && export PATH="$newest/bin:$PATH";',
+        'fi;',
+        'npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && rm -rf out && mv dist out',
+      }, ' '),
     },
   },
   keys = {
