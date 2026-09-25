@@ -665,7 +665,6 @@ require('lazy').setup({
       --  Trzymaj tę listę w zgodzie z tym, czego faktycznie używasz: to ona,
       --  a nie stan dysku, odtworzy środowisko na nowej maszynie.
       local servers = {
-        -- clangd = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -676,6 +675,19 @@ require('lazy').setup({
         pyright = {},
         ts_ls = {},
         angularls = {},
+
+        -- C / C++. Najlepiej działa z `compile_commands.json` w roocie projektu
+        -- (CMake: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, make: `bear -- make`).
+        -- Bez niego clangd zgaduje flagi (nagłówki systemowe/SDK macOS znajduje sam).
+        clangd = {
+          cmd = {
+            'clangd',
+            '--background-index',
+            '--clang-tidy',
+            '--header-insertion=iwyu',
+            '--completion-style=detailed',
+          },
+        },
 
         lua_ls = {
           -- cmd = {...},
@@ -969,6 +981,7 @@ require('lazy').setup({
         'bash',
         'c',
         'c_sharp',
+        'cpp',
         'css',
         'csv',
         'diff',
