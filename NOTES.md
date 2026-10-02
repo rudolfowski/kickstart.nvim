@@ -37,6 +37,8 @@ vim.list_extend(ensure_installed, {
 ```
 
 Tu używa się **nazwy pakietu mason** (tej z `:Mason`) — nie ma czego tłumaczyć.
+Sam pakiet to połowa roboty: formatter trzeba jeszcze podpiąć pod filetype w
+`formatters_by_ft` w bloku conform.nvim (`init.lua`), inaczej nic go nie odpali.
 
 ### Debugger (DAP) → `lua/kickstart/plugins/debug.lua`, `ensure_installed`
 
@@ -93,3 +95,18 @@ ale jeśli jakiś build zacznie się wywalać na
 Generyczny wpis `Host github.com` w `~/.ssh/config` celuje w klucz konta **lulu-soft**.
 To repo świadomie go omija — remote wskazuje na `git_rudolfowski:...`.
 Nie przestawiaj go na `github.com`, bo push pójdzie z niewłaściwego konta.
+
+### Formatowaniem rządzi conform.nvim — także Go
+
+Jedno miejsce (`formatters_by_ft` w `init.lua`), jeden `<leader>f`, format przy zapisie
+tylko dla języków z tej tabeli + C/C++ (przez clangd). Go formatuje conform
+(`goimports`), **nie** go.nvim: jego `go.format.goimports()` to asynchroniczny code
+action gopls, który zmieniał bufor już po zapisie — plik zostawał niesformatowany.
+
+### Formatowanie C/C++: `~/.clang-format` to symlink do `.clang-format` z repo
+
+Formatuje clangd (conform bez formattera dla C/C++ → `lsp_format = 'fallback'`). Styl LLVM z `IndentWidth: 4` siedzi w
+`.clang-format` w tym repo, a `~/.clang-format` musi na niego wskazywać — clangd
+szuka pliku w górę drzewa, a `--fallback-style` przyjmuje tylko nazwę stylu, nie YAML.
+Na nowej maszynie: `ln -s ~/.config/nvim/.clang-format ~/.clang-format`.
+Bez symlinka wyjdzie czyste LLVM (wcięcie 2). Projektowy `.clang-format` ma pierwszeństwo.

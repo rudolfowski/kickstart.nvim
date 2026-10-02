@@ -84,13 +84,22 @@ return {
 
       -- You can provide additional configuration to the handlers,
       -- see mason-nvim-dap README for more information
-      handlers = {},
+      -- Domyślny handler konfiguruje adapter + launch configi dla każdego
+      -- zainstalowanego debuggera (codelldb → C/C++). Python i Go mają własne
+      -- konfiguracje z nvim-dap-python / nvim-dap-go niżej — bez wyłączenia tu
+      -- byłyby zdublowane wpisy.
+      handlers = {
+        function(config)
+          require('mason-nvim-dap').default_setup(config)
+        end,
+        python = function() end,
+        delve = function() end,
+      },
 
-      -- You'll need to check that you have the required things installed
-      -- online, please don't ask me how to install them :)
       ensure_installed = {
-        -- Update this to ensure that you have the debuggers for the langs you want
-        'delve',
+        'delve', -- Go
+        'python', -- debugpy
+        'codelldb', -- C / C++
       },
     }
 
@@ -216,7 +225,9 @@ return {
     --   },
     -- }
 
-    dappy.setup 'python3'
+    -- debugpy z Masona (systemowy python3 go nie ma). Debugowany program
+    -- dostaje interpreter z aktywnego venv / .venv / venv w projekcie, jeśli jest.
+    dappy.setup(vim.fn.stdpath 'data' .. '/mason/packages/debugpy/venv/bin/python')
 
     -- Install golang specific config
     require('dap-go').setup {

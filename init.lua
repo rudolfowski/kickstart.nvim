@@ -161,6 +161,23 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- Nazwy tabów: ścieżka względem cwd zamiast domyślnego skracania katalogów (l/c/p/plik.lua).
+-- Liczy się bufor z aktywnego okna taba — przy otwartym neo-tree też.
+function _G.Tabline()
+  local s = ''
+  for nr = 1, vim.fn.tabpagenr '$' do
+    local winnr = vim.fn.tabpagewinnr(nr)
+    local bufnr = vim.fn.tabpagebuflist(nr)[winnr]
+    local name = vim.api.nvim_buf_get_name(bufnr)
+    name = name == '' and '[No Name]' or vim.fn.fnamemodify(name, ':~:.'):gsub('%%', '%%%%')
+    local modified = vim.bo[bufnr].modified and ' +' or ''
+    s = s .. (nr == vim.fn.tabpagenr() and '%#TabLineSel#' or '%#TabLine#')
+    s = s .. '%' .. nr .. 'T ' .. name .. modified .. ' '
+  end
+  return s .. '%#TabLineFill#%T'
+end
+vim.opt.tabline = '%!v:lua.Tabline()'
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -437,7 +454,10 @@ require('lazy').setup({
             },
           },
         },
-        -- pickers = {}
+        pickers = {
+          -- Podgląd theme'u na żywo przy przewijaniu listy; <Esc> przywraca poprzedni
+          colorscheme = { enable_preview = true },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -688,8 +708,22 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
 
         gopls = {},
-        pyright = {},
+        -- Python: pyright od typów, ruff od lintu i quick-fixów.
+        -- Importy porządkuje ruff (conform), więc pyright ma to wyłączone.
+        pyright = {
+          settings = {
+            pyright = { disableOrganizeImports = true },
+          },
+        },
+        ruff = {
+          -- hover daje pyright; bez tego oba serwery pokazują okienko
+          on_attach = function(client)
+            client.server_capabilities.hoverProvider = false
+          end,
+        },
         ts_ls = {},
+        -- Odpala się tylko w projektach z configiem ESLint (root_dir w lspconfig)
+        eslint = {},
         angularls = {},
 
         -- C / C++. Najlepiej działa z `compile_commands.json` w roocie projektu
@@ -702,6 +736,8 @@ require('lazy').setup({
             '--clang-tidy',
             '--header-insertion=iwyu',
             '--completion-style=detailed',
+            -- Styl formatowania, gdy w projekcie nie ma .clang-format
+            '--fallback-style=llvm',
           },
         },
 
@@ -741,7 +777,9 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
-        'goimports', -- Używane przez go.nvim przy zapisie (BufWritePre)
+        'goimports', -- conform: formatowanie Go
+        'prettierd', -- conform: JS/TS/JSON/CSS/HTML/YAML/Markdown
+        -- ruff (formatter Pythona) instaluje się jako serwer z tabeli `servers`
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -759,48 +797,55 @@ require('lazy').setup({
     end,
   },
 
-  -- { -- Autoformat
-  --   'stevearc/conform.nvim',
-  --   event = { 'BufWritePre' },
-  --   cmd = { 'ConformInfo' },
-  --   keys = {
-  --     {
-  --       '<leader>f',
-  --       function()
-  --         require('conform').format { async = true, lsp_format = 'fallback' }
-  --       end,
-  --       mode = '',
-  --       desc = '[F]ormat buffer',
-  --     },
-  --   },
-  --   opts = {
-  --     notify_on_error = false,
-  --     format_on_save = function(bufnr)
-  --       -- Disable "format_on_save lsp_fallback" for languages that don't
-  --       -- have a well standardized coding style. You can add additional
-  --       -- languages here or re-enable it for the disabled ones.
-  --       local disable_filetypes = { c = true, cpp = true, js = true, ts = true, html = true, css = true, json = true }
-  --       local lsp_format_opt
-  --       if disable_filetypes[vim.bo[bufnr].filetype] then
-  --         lsp_format_opt = 'never'
-  --       else
-  --         lsp_format_opt = 'fallback'
-  --       end
-  --       return {
-  --         timeout_ms = 500,
-  --         lsp_format = lsp_format_opt,
-  --       }
-  --     end,
-  --     formatters_by_ft = {
-  --       lua = { 'stylua' },
-  --       -- Conform can also run multiple formatters sequentially
-  --       -- python = { "isort", "black" },
-  --       --
-  --       -- You can use 'stop_after_first' to run the first available formatter from the list
-  --       -- javascript = { "prettierd", "prettier", stop_after_first = true },
-  --     },
-  --   },
-  -- },
+  { -- Autoformat: jeden <leader>f i format przy zapisie dla wszystkich języków
+    'stevearc/conform.nvim',
+    event = { 'BufWritePre' },
+    cmd = { 'ConformInfo' },
+    keys = {
+      {
+        '<leader>f',
+        function()
+          require('conform').format { async = true, lsp_format = 'fallback' }
+        end,
+        mode = '',
+        desc = '[F]ormat buffer',
+      },
+    },
+    opts = {
+      notify_on_error = false,
+      format_on_save = function(bufnr)
+        local ft = vim.bo[bufnr].filetype
+        -- Przy zapisie tylko języki skonfigurowane niżej + C/C++ przez clangd.
+        -- Reszta (np. yaml, markdown) tylko ręcznie przez <leader>f.
+        local on_save = { c = true, cpp = true }
+        if not on_save[ft] and not require('conform').formatters_by_ft[ft] then
+          return
+        end
+        return { timeout_ms = 1000, lsp_format = 'fallback' }
+      end,
+      formatters_by_ft = {
+        lua = { 'stylua' },
+        -- goimports = gofmt + porządkowanie importów. Synchronicznie, przed zapisem
+        -- (go.nvim robił to asynchronicznie przez gopls — już PO zapisie).
+        go = { 'goimports' },
+        python = { 'ruff_organize_imports', 'ruff_format' },
+        javascript = { 'prettierd' },
+        javascriptreact = { 'prettierd' },
+        typescript = { 'prettierd' },
+        typescriptreact = { 'prettierd' },
+        json = { 'prettierd' },
+        css = { 'prettierd' },
+        scss = { 'prettierd' },
+        html = { 'prettierd' },
+        htmlangular = { 'prettierd' },
+        -- C/C++: brak formattera = lsp_format 'fallback' → clangd (wbudowany
+        -- clang-format). Styl: najbliższy .clang-format w górę drzewa — projektowy,
+        -- a jak go nie ma, globalny ~/.clang-format (symlink do .clang-format z tego
+        -- repo: LLVM + IndentWidth 4). --fallback-style w clangd przyjmuje tylko
+        -- nazwę stylu, nie YAML, stąd ten plik. Poza ~ (np. /tmp) zostaje czyste LLVM.
+      },
+    },
+  },
   --
   { -- Autocompletion
     'hrsh7th/nvim-cmp',
@@ -918,21 +963,13 @@ require('lazy').setup({
     end,
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
+  { -- Colorscheme. Inne warianty: catppuccin-macchiato / -frappe / -latte (jasny).
+    -- Podgląd zainstalowanych: :Telescope colorscheme
+    'catppuccin/nvim',
+    name = 'catppuccin',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     init = function()
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
-
-      -- You can configure highlights by doing something like:
-      vim.cmd.hi 'Comment gui=none'
+      vim.cmd.colorscheme 'catppuccin-mocha'
     end,
   },
 

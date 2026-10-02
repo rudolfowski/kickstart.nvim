@@ -8,15 +8,9 @@ return {
   config = function()
     require('go').setup()
 
-    -- Run gofmt + goimports on save
-    local format_sync_grp = vim.api.nvim_create_augroup('goimports', {})
-    vim.api.nvim_create_autocmd('BufWritePre', {
-      pattern = '*.go',
-      callback = function()
-        require('go.format').goimports()
-      end,
-      group = format_sync_grp,
-    })
+    -- NOTE: formatowanie przy zapisie robi conform (goimports, init.lua).
+    -- Był tu BufWritePre z require('go.format').goimports(), ale to asynchroniczny
+    -- code action gopls — zmieniał bufor już PO zapisie, plik zostawał niesformatowany.
   end,
   -- NOTE: był tu też `event = { 'CmdlineEnter' }`, który ładował wtyczkę przy
   -- pierwszym naciśnięciu `:` w dowolnym pliku, kasując sens lazy-loadingu po `ft`.
